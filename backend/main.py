@@ -20,9 +20,8 @@ NEWSAPI_KEY = os.getenv("NEWSAPI_KEY")
 GNEWS_KEY = os.getenv("GNEWS_KEY")
 EIA_KEY = os.getenv("EIA_KEY")
 
-# Simple in-memory cache: { cache_key: { "data": ..., "ts": timestamp } }
 _cache = {}
-CACHE_TTL = 600  # 10 minutes
+CACHE_TTL = 600
 
 
 def get_cache(key):
@@ -140,10 +139,25 @@ async def country_info(name: str):
 
     async with httpx.AsyncClient(timeout=10) as client:
         resp = await client.get(f"https://restcountries.com/v3.1/name/{name}")
+
     if resp.status_code != 200:
         raise HTTPException(status_code=404, detail="Country not found")
 
-    data = resp.json()[0]
+    all_countries = resp.json()
+
+    # Exact match first
+    data = next(
+        (c for c in all_countries if c.get("name", {}).get("common", "").lower() == name.lower()),
+        None
+    )
+
+    # Partial match fallback
+    if not data:
+        data = next(
+            (c for c in all_countries if name.lower() in c.get("name", {}).get("common", "").lower()),
+            all_countries[0]
+        )
+
     result = {
         "name": data.get("name", {}).get("common"),
         "capital": data.get("capital", ["N/A"])[0] if data.get("capital") else "N/A",
@@ -152,7 +166,6 @@ async def country_info(name: str):
         "subregion": data.get("subregion"),
         "flag": data.get("flags", {}).get("svg"),
         "flagEmoji": data.get("flag"),
-        "gdp": data.get("gdp"),
         "languages": list(data.get("languages", {}).values()),
         "currencies": [v.get("name") for v in data.get("currencies", {}).values()],
         "latlng": data.get("latlng"),
@@ -163,7 +176,6 @@ async def country_info(name: str):
 
 @app.get("/conflicts")
 async def conflicts():
-    # GDELT does not require a key — querying for conflict-related events
     cached = get_cache("conflicts")
     if cached:
         return cached
@@ -181,7 +193,6 @@ async def conflicts():
         )
 
     if resp.status_code != 200:
-        # Return fallback static data if GDELT is unavailable
         return _fallback_conflicts()
 
     try:
