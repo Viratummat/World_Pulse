@@ -46,4 +46,4 @@ worldpulse/
 ## Built By
 
 Virat — B.Tech CSE, Semester 2  
-Portfolio project targeting HENNGE Global Internship Program
+Portfolio project
