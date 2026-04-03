@@ -41,8 +41,8 @@ function initMap() {
   });
 
   // OpenStreetMap tiles (free, no key needed)
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    attribution: '© <a href="https://openstreetmap.org">OpenStreetMap</a>',
+  L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
+    attribution: '© <a href="https://carto.com">CARTO</a> © <a href="https://openstreetmap.org">OpenStreetMap</a>',
     maxZoom: 19,
   }).addTo(map);
 
