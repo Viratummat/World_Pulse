@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WorldPulse — Global Intelligence Dashboard</title>
+
+  <!-- Leaflet.js for the interactive map -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+
+  <!-- Chart.js for oil price chart -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <!-- TOP NAVBAR -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <div class="logo">World<span>Pulse</span></div>
+      <nav class="nav-tabs">
+        <button class="nav-tab active" data-tab="map">Map</button>
+        <button class="nav-tab" data-tab="news">Global News</button>
+        <button class="nav-tab" data-tab="oil">Oil Markets</button>
+        <button class="nav-tab" data-tab="conflicts">Conflicts</button>
+      </nav>
+    </div>
+    <div class="topbar-right">
+      <div class="live-indicator">
+        <span class="live-dot"></span>
+        <span class="live-text">Live</span>
+      </div>
+      <div class="oil-ticker" id="oil-ticker">Loading oil prices...</div>
+      <div class="update-time" id="update-time"></div>
+    </div>
+  </header>
+
+  <!-- MAIN LAYOUT -->
+  <main class="main-layout">
+
+    <!-- LEFT SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sidebar-section">
+        <div class="section-label">Search Country</div>
+        <div class="search-wrap">
+          <input type="text" id="country-search" class="search-input" placeholder="e.g. India, Ukraine..." />
+          <button class="search-btn" id="search-btn">Go</button>
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="section-label">Trending Countries</div>
+        <ul class="country-list" id="country-list">
+          <li class="country-item" data-country="Ukraine" data-lat="48.3794" data-lng="31.1656">
+            <span class="cflag">🇺🇦</span>
+            <span class="cname">Ukraine</span>
+            <span class="cbadge war">War</span>
+          </li>
+          <li class="country-item" data-country="India" data-lat="20.5937" data-lng="78.9629">
+            <span class="cflag">🇮🇳</span>
+            <span class="cname">India</span>
+            <span class="cbadge news">News</span>
+          </li>
+          <li class="country-item" data-country="China" data-lat="35.8617" data-lng="104.1954">
+            <span class="cflag">🇨🇳</span>
+            <span class="cname">China</span>
+            <span class="cbadge news">News</span>
+          </li>
+          <li class="country-item" data-country="Israel" data-lat="31.0461" data-lng="34.8516">
+            <span class="cflag">🇮🇱</span>
+            <span class="cname">Israel</span>
+            <span class="cbadge war">War</span>
+          </li>
+          <li class="country-item" data-country="United States" data-lat="37.0902" data-lng="-95.7129">
+            <span class="cflag">🇺🇸</span>
+            <span class="cname">United States</span>
+            <span class="cbadge stable">Stable</span>
+          </li>
+          <li class="country-item" data-country="Russia" data-lat="61.5240" data-lng="105.3188">
+            <span class="cflag">🇷🇺</span>
+            <span class="cname">Russia</span>
+            <span class="cbadge war">War</span>
+          </li>
+          <li class="country-item" data-country="Saudi Arabia" data-lat="23.8859" data-lng="45.0792">
+            <span class="cflag">🇸🇦</span>
+            <span class="cname">Saudi Arabia</span>
+            <span class="cbadge oil">Oil</span>
+          </li>
+          <li class="country-item" data-country="Sudan" data-lat="12.8628" data-lng="30.2176">
+            <span class="cflag">🇸🇩</span>
+            <span class="cname">Sudan</span>
+            <span class="cbadge war">War</span>
+          </li>
+          <li class="country-item" data-country="Germany" data-lat="51.1657" data-lng="10.4515">
+            <span class="cflag">🇩🇪</span>
+            <span class="cname">Germany</span>
+            <span class="cbadge stable">Stable</span>
+          </li>
+          <li class="country-item" data-country="Japan" data-lat="36.2048" data-lng="138.2529">
+            <span class="cflag">🇯🇵</span>
+            <span class="cname">Japan</span>
+            <span class="cbadge stable">Stable</span>
+          </li>
+        </ul>
+      </div>
+    </aside>
+
+    <!-- CENTER: MAP + TABS CONTENT -->
+    <section class="content-area">
+
+      <!-- MAP TAB -->
+      <div class="tab-panel active" id="tab-map">
+        <div id="map"></div>
+
+        <!-- Country detail overlay (shown when a country is clicked) -->
+        <div class="country-overlay hidden" id="country-overlay">
+          <div class="overlay-header">
+            <div class="overlay-flag" id="overlay-flag"></div>
+            <div class="overlay-info">
+              <div class="overlay-name" id="overlay-name">—</div>
+              <div class="overlay-meta" id="overlay-meta">—</div>
+            </div>
+            <button class="overlay-close" id="overlay-close">✕</button>
+          </div>
+          <div class="overlay-tags" id="overlay-tags"></div>
+          <div class="overlay-news" id="overlay-news">
+            <div class="overlay-news-title">Latest News</div>
+            <div class="news-loading" id="country-news-loading">Loading news...</div>
+            <ul class="overlay-news-list" id="overlay-news-list"></ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- GLOBAL NEWS TAB -->
+      <div class="tab-panel" id="tab-news">
+        <div class="tab-header">
+          <h2 class="tab-title">Global Headlines</h2>
+          <button class="refresh-btn" id="refresh-news">Refresh</button>
+        </div>
+        <div class="news-loading" id="global-news-loading">Loading global news...</div>
+        <ul class="global-news-list" id="global-news-list"></ul>
+      </div>
+
+      <!-- OIL MARKETS TAB -->
+      <div class="tab-panel" id="tab-oil">
+        <div class="tab-header">
+          <h2 class="tab-title">Crude Oil Markets</h2>
+          <span class="tab-subtitle">Data from U.S. Energy Information Administration</span>
+        </div>
+        <div class="oil-cards" id="oil-cards">
+          <div class="oil-card">
+            <div class="oil-card-label">Brent Crude</div>
+            <div class="oil-card-price" id="brent-price">—</div>
+            <div class="oil-card-change" id="brent-change">—</div>
+          </div>
+          <div class="oil-card">
+            <div class="oil-card-label">WTI (West Texas)</div>
+            <div class="oil-card-price" id="wti-price">—</div>
+            <div class="oil-card-change" id="wti-change">—</div>
+          </div>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="oil-chart"></canvas>
+        </div>
+        <div class="oil-table-wrap">
+          <table class="oil-table" id="oil-table">
+            <thead>
+              <tr><th>Date</th><th>Product</th><th>Price (USD/bbl)</th></tr>
+            </thead>
+            <tbody id="oil-table-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- CONFLICTS TAB -->
+      <div class="tab-panel" id="tab-conflicts">
+        <div class="tab-header">
+          <h2 class="tab-title">Conflict Tracker</h2>
+          <span class="tab-subtitle">Sourced from GDELT Project</span>
+        </div>
+        <div class="conflict-zones">
+          <div class="conflict-zone-card">
+            <div class="cz-dot war"></div>
+            <div>
+              <div class="cz-name">Russia – Ukraine</div>
+              <div class="cz-detail">Active frontline ~1,100km · Day 763+</div>
+            </div>
+            <span class="cz-badge high">High intensity</span>
+          </div>
+          <div class="conflict-zone-card">
+            <div class="cz-dot war"></div>
+            <div>
+              <div class="cz-name">Israel – Gaza</div>
+              <div class="cz-detail">Ongoing · Humanitarian corridors disputed</div>
+            </div>
+            <span class="cz-badge high">High intensity</span>
+          </div>
+          <div class="conflict-zone-card">
+            <div class="cz-dot war"></div>
+            <div>
+              <div class="cz-name">Sudan (RSF vs SAF)</div>
+              <div class="cz-detail">Escalating · El Fasher under threat</div>
+            </div>
+            <span class="cz-badge high">High intensity</span>
+          </div>
+          <div class="conflict-zone-card">
+            <div class="cz-dot medium"></div>
+            <div>
+              <div class="cz-name">Myanmar</div>
+              <div class="cz-detail">Resistance operations ongoing</div>
+            </div>
+            <span class="cz-badge medium">Medium intensity</span>
+          </div>
+          <div class="conflict-zone-card">
+            <div class="cz-dot medium"></div>
+            <div>
+              <div class="cz-name">Ethiopia (Amhara)</div>
+              <div class="cz-detail">Internal conflict, sporadic clashes</div>
+            </div>
+            <span class="cz-badge medium">Medium intensity</span>
+          </div>
+        </div>
+        <div class="tab-header" style="margin-top:24px;">
+          <h3 class="tab-title" style="font-size:15px;">Recent Conflict Reports</h3>
+        </div>
+        <div class="news-loading" id="conflict-news-loading">Loading conflict reports...</div>
+        <ul class="global-news-list" id="conflict-news-list"></ul>
+      </div>
+
+    </section>
+
+    <!-- RIGHT PANEL -->
+    <aside class="right-panel">
+      <div class="sidebar-section">
+        <div class="section-label">Breaking News</div>
+        <div class="news-loading" id="right-news-loading">Loading...</div>
+        <ul class="right-news-list" id="right-news-list"></ul>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="section-label">Oil Snapshot</div>
+        <div class="oil-snapshot" id="oil-snapshot">
+          <div class="snap-row">
+            <span class="snap-label">Brent</span>
+            <span class="snap-val" id="snap-brent">—</span>
+          </div>
+          <div class="snap-row">
+            <span class="snap-label">WTI</span>
+            <span class="snap-val" id="snap-wti">—</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="section-label">Active Conflicts</div>
+        <ul class="mini-conflict-list">
+          <li><span class="mini-dot war"></span> Russia–Ukraine</li>
+          <li><span class="mini-dot war"></span> Israel–Gaza</li>
+          <li><span class="mini-dot war"></span> Sudan</li>
+          <li><span class="mini-dot medium"></span> Myanmar</li>
+          <li><span class="mini-dot medium"></span> Ethiopia</li>
+        </ul>
+      </div>
+    </aside>
+
+  </main>
+
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/map.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
